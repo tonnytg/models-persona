@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 
@@ -9,21 +10,40 @@ import (
 )
 
 func main() {
-	log.Println("Start creating your Persona friend")
+	log.Println("Starting the process to create your Persona friend...")
 
+	// Verifying if the API key is set in the environment variables
+	apiKey := os.Getenv("GOOGLE_API_KEY")
+	if apiKey == "" {
+		log.Fatal("GOOGLE_API_KEY is not set in the environment variables.")
+	}
+
+	// Initialize the context and the Gemini client
 	ctx := context.Background()
-	client, err := genai.NewClient(ctx, option.WithAPIKey(os.Getenv("GOOGLE_API_KEY")))
+	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
+	if err != nil {
+		log.Fatalf("Failed to create Gemini client: %v", err)
+	}
+
+	// Use the "gemini-1.5-flash" model for generating content
 	model := client.GenerativeModel("gemini-1.5-flash")
 
-  imgData, _ := os.ReadFile("photo.jpg")
+	// Reading image data from the file system
+	imgData, err := os.ReadFile("photo.jpg")
+	if err != nil {
+		log.Fatalf("Failed to read the image file: %v", err)
+	}
+
+	// Generating content by passing the image data and a text prompt
 	resp, err := model.GenerateContent(
 		ctx,
 		genai.Text("What's in this photo?"),
-		genai.ImageData("jpeg", imgData))
+		genai.ImageData("jpeg", imgData),
+	)
+	if err != nil {
+		log.Fatalf("Error generating content: %v", err)
+	}
 
-  if err != nil {
-    log.Println("Error:", err)
-    os.Exit(1)
-  }
-  log.Println("Resp:", resp)
+	// Printing the response from Gemini model
+	log.Printf("Response: %v", resp)
 }
